@@ -8,20 +8,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-
-"""
-logging.debug('123')  # Когда нужна отладочная информация 
-logging.info('Сообщение отправлено')  # Когда нужна дополнительная информация
-logging.warning('Большая нагрузка, хелп')  # Когда что-то идёт не так, но работает
-logging.error('Бот не смог отправить сообщение')  # Когда что-то сломалось
-logging.critical('Всё упало! Зовите админа!1!111')  # Когда всё совсем плохо 
-"""
-
 PRAKTIKUM_TOKEN = os.getenv("PRAKTIKUM_TOKEN")
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 
-# filename='api_sp1_bot.log',
 logging.basicConfig(
     level=logging.DEBUG,
     format='%(asctime)s, %(levelname)s, %(message)s, %(name)s'
@@ -60,7 +50,9 @@ def get_homework_statuses(current_timestamp):
     :return: Статус домашней работы
     """
     homework_statuses = requests.get(
-        f"https://praktikum.yandex.ru/api/user_api/homework_statuses/", headers={'Authorization': f'OAuth {PRAKTIKUM_TOKEN}'} , params={'from_date': current_timestamp}
+        "https://praktikum.yandex.ru/api/user_api/homework_statuses/",
+        headers={'Authorization': f'OAuth {PRAKTIKUM_TOKEN}'},
+        params={'from_date': current_timestamp}
     )
     return homework_statuses.json()
 
