@@ -35,7 +35,6 @@ def parse_homework_status(homework):
     :param homework: Задание
     :return: Результат выполнения домашней работы
     """
-    logging.info(homework)
     homework_name = homework['homework_name']
     """
     - reviewing: работа взята в ревью;
@@ -63,7 +62,6 @@ def get_homework_statuses(current_timestamp):
     homework_statuses = requests.get(
         f"https://praktikum.yandex.ru/api/user_api/homework_statuses/", headers={'Authorization': f'OAuth {PRAKTIKUM_TOKEN}'} , params={'from_date': current_timestamp}
     )
-    logging.debug(homework_statuses)
     return homework_statuses.json()
 
 
@@ -75,26 +73,33 @@ def send_message(message, bot_client):
     :param bot_client: Экземпляр бота телеграм
     :return: Результат отправки сообщения
     """
-    logging.info(message)
+    logging.info(f"Отправленное сообщение: {message}")
     return bot_client.send_message(chat_id=CHAT_ID, text=message)
 
 
 def main():
+    logging.debug('Бот запущен!')
     # проинициализировать бота здесь
     current_timestamp = int(time.time())  # начальное значение timestamp
-    #current_timestamp = 0
     bot = Bot(token=TELEGRAM_TOKEN)  # инициализация бота
 
     while True:
         try:
             new_homework = get_homework_statuses(current_timestamp)
             if new_homework.get('homeworks'):
-                send_message(parse_homework_status(new_homework.get('homeworks')[0]), bot)
-            current_timestamp = new_homework.get('current_date', current_timestamp)  # обновить timestamp
-            time.sleep(300)  # опрашивать раз в пять минут
+                send_message(
+                    parse_homework_status(new_homework.get('homeworks')[0]),
+                    bot,
+                )
+            current_timestamp = new_homework.get(
+                'current_date', current_timestamp
+            )
+            # опрашивать раз в пять минут
+            time.sleep(300)
 
         except Exception as e:
-            print(f'Бот столкнулся с ошибкой: {e}')
+            logging.error(f'Бот столкнулся с ошибкой: {e}')
+            send_message(f'Бот столкнулся с ошибкой: {e}', bot)
             time.sleep(5)
 
 
