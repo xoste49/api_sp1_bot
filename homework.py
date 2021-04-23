@@ -20,8 +20,10 @@ logging.basicConfig(
     format='%(asctime)s, %(levelname)s, %(message)s, %(name)s'
 )
 
+
 class praktikum_exception(Exception):
     pass
+
 
 def timeout_exception():
     global time_sleep_error
@@ -37,14 +39,13 @@ def timeout_exception():
 
 
 def parse_homework_status(homework):
-    logging.debug(homework)
     """
     Парсим домашнее задание
 
     :param homework: Задание
     :return: Результат выполнения домашней работы
     """
-    logging.debug("Парсим домашнее задание")
+    logging.debug(f"Парсим домашнее задание: {homework}")
     if 'homework_name' in homework:
         homework_name = homework['homework_name']
         if 'status' in homework:
@@ -67,13 +68,12 @@ def parse_homework_status(homework):
 
         return f'У вас проверили работу "{homework_name}"!\n\n{verdict}'
     else:
-        # logging.info("Задание не обнаружено")
-        pass
+        raise praktikum_exception("Задания не обнаружены")
 
 
 def get_homework_statuses(current_timestamp):
     """
-    Получение списка домашних работы от заданного времени
+    Получение списка домашних работы от заданного времени.
 
     :param current_timestamp: Время в формате timestamp
     :return: Статус домашней работы
@@ -107,21 +107,18 @@ def get_homework_statuses(current_timestamp):
             f"исключительная ситуация: {e}"
         )
 
-    if homework_statuses.status_code == 404:
-        raise praktikum_exception("Ошибка 404")
-
     try:
         homework_statuses_json = homework_statuses.json()
-    except json.JSONDecodeError as e:
+    except json.JSONDecodeError:
         raise praktikum_exception(
             "Ответ от сервера должен быть в формате JSON"
         )
     except ValueError as e:
-        raise praktikum_exception(e)
+        raise praktikum_exception(f"Ошибка в значении {e}")
     except TypeError as e:
+        raise praktikum_exception(f"Не корректный тип данных {e}")
+    except Exception as e:
         raise praktikum_exception(e)
-
-    logging.debug(homework_statuses_json)
 
     if 'error' in homework_statuses_json:
         if 'error' in homework_statuses_json['error']:
@@ -145,15 +142,15 @@ def send_message(message, bot_client):
     :param bot_client: Экземпляр бота телеграм
     :return: Результат отправки сообщения
     """
-    logging.info(f"Отправлено сообщение: {message}")
+    log = message.replace('\n', '')
+    logging.info(f"Отправлено сообщение: {log}")
     return bot_client.send_message(chat_id=CHAT_ID, text=message)
 
 
 def main():
     logging.debug('Бот запущен!')
     current_timestamp = int(time.time())  # начальное значение timestamp
-    current_timestamp = 0  # начальное значение timestamp
-    bot = Bot(token=TELEGRAM_TOKEN)  # инициализация бота
+    bot = Bot(token=TELEGRAM_TOKEN)
 
     while True:
         try:
@@ -169,9 +166,9 @@ def main():
             # опрашивать раз в пять минут
             time.sleep(300)
 
-        except error.Unauthorized as e:
+        except error.Unauthorized:
             logging.error(
-                f'Телеграм API: Не авторизован, проверьте TOKEN и CHAT_ID'
+                'Телеграм API: Не авторизован, проверьте TOKEN и CHAT_ID'
             )
             timeout_exception()
         except error.BadRequest as e:
