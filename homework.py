@@ -85,30 +85,12 @@ def get_homework_statuses(current_timestamp):
             headers={'Authorization': f'OAuth {PRAKTIKUM_TOKEN}'},
             params={'from_date': current_timestamp}
         )
-    except requests.exceptions.Timeout:
-        raise praktikum_exception(
-            "Время ожидания запроса истекло."
-        )
-    except requests.exceptions.TooManyRedirects:
-        raise praktikum_exception(
-            "Слишком много перенаправлений."
-        )
-    except requests.exceptions.ConnectionError:
-        raise praktikum_exception(
-            "Ошибка подключения. Проверьте интернет соединение."
-        )
-    except requests.exceptions.InvalidHeader:
-        raise praktikum_exception(
-            "Предоставленное значение заголовка почему-то неверно."
-        )
+        homework_statuses_json = homework_statuses.json()
     except requests.exceptions.RequestException as e:
         raise praktikum_exception(
             "При обработке вашего запроса возникла неоднозначная "
             f"исключительная ситуация: {e}"
         )
-
-    try:
-        homework_statuses_json = homework_statuses.json()
     except json.JSONDecodeError:
         raise praktikum_exception(
             "Ответ от сервера должен быть в формате JSON"
