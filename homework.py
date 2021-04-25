@@ -21,11 +21,14 @@ logging.basicConfig(
 )
 
 
-class praktikum_exception(Exception):
+class PraktikumException(Exception):
     pass
 
 
 def timeout_exception():
+    """
+    Таймаут между после ошибки увеличивающийся в 2 раза после каждой ошибки
+    """
     global time_sleep_error
     logging.debug(f'Timeout: {time_sleep_error}с')
     time.sleep(time_sleep_error)
@@ -35,7 +38,6 @@ def timeout_exception():
         logging.critical(
             'Очень много ошибок или проблемы в работе программы. '
         )
-    return time_sleep_error
 
 
 def parse_homework_status(homework):
@@ -54,7 +56,7 @@ def parse_homework_status(homework):
             logging.error("Статус домашней работы пуст!")
 
         statuses = {
-            'reviewing': f'"{homework_name}" взята в ревью.',
+            'reviewing': 'Взята в ревью.',
             'approved': 'Ревьюеру всё понравилось, можно приступать к '
                         'следующему уроку.',
             'rejected': 'К сожалению в работе нашлись ошибки.',
@@ -68,7 +70,7 @@ def parse_homework_status(homework):
 
         return f'У вас проверили работу "{homework_name}"!\n\n{verdict}'
     else:
-        raise praktikum_exception("Задания не обнаружены")
+        raise PraktikumException("Задания не обнаружены")
 
 
 def get_homework_statuses(current_timestamp):
@@ -87,29 +89,29 @@ def get_homework_statuses(current_timestamp):
         )
         homework_statuses_json = homework_statuses.json()
     except requests.exceptions.RequestException as e:
-        raise praktikum_exception(
+        raise PraktikumException(
             "При обработке вашего запроса возникла неоднозначная "
             f"исключительная ситуация: {e}"
         )
     except json.JSONDecodeError:
-        raise praktikum_exception(
+        raise PraktikumException(
             "Ответ от сервера должен быть в формате JSON"
         )
     except ValueError as e:
-        raise praktikum_exception(f"Ошибка в значении {e}")
+        raise PraktikumException(f"Ошибка в значении {e}")
     except TypeError as e:
-        raise praktikum_exception(f"Не корректный тип данных {e}")
+        raise PraktikumException(f"Не корректный тип данных {e}")
     except Exception as e:
-        raise praktikum_exception(e)
+        raise PraktikumException(e)
 
     if 'error' in homework_statuses_json:
         if 'error' in homework_statuses_json['error']:
-            raise praktikum_exception(
+            raise PraktikumException(
                 f"{homework_statuses_json['error']['error']}"
             )
 
     if 'code' in homework_statuses_json:
-        raise praktikum_exception(
+        raise PraktikumException(
             f"{homework_statuses_json['message']}"
         )
 
@@ -159,7 +161,7 @@ def main():
         except error.TelegramError as e:
             logging.error(f'Ошибка работы с Телеграм: {e}')
             timeout_exception()
-        except praktikum_exception as e:
+        except PraktikumException as e:
             logging.error(f'praktikum.yandex.ru: {e}')
             send_message(f'Ошибка: praktikum.yandex.ru: {e}', bot)
             timeout_exception()
