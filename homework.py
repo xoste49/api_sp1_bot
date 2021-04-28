@@ -25,10 +25,12 @@ class PraktikumException(Exception):
     pass
 
 
-def timeout_exception():
+def timeout_exception(message: str = None, level_error=logging.error):
     """
     Таймаут между после ошибки увеличивающийся в 2 раза после каждой ошибки
     """
+    if message:
+        level_error(message)  # Запись в лог
     global time_sleep_error
     logging.debug(f'Timeout: {time_sleep_error}с')
     time.sleep(time_sleep_error)
@@ -48,29 +50,26 @@ def parse_homework_status(homework):
     :return: Результат выполнения домашней работы
     """
     logging.debug(f"Парсим домашнее задание: {homework}")
-    if 'homework_name' in homework:
-        homework_name = homework['homework_name']
-        if 'status' in homework:
-            homework_status = homework['status']
-        else:
-            logging.error("Статус домашней работы пуст!")
-
-        statuses = {
-            'reviewing': 'Взята в ревью.',
-            'approved': 'Ревьюеру всё понравилось, можно приступать к '
-                        'следующему уроку.',
-            'rejected': 'К сожалению в работе нашлись ошибки.',
-        }
-
-        if homework_status in statuses:
-            verdict = statuses[homework_status]
-        else:
-            verdict = statuses[homework_status]
-            logging.warning("Обнаружен новый статус, отсутствующий в списке!")
-
-        return f'У вас проверили работу "{homework_name}"!\n\n{verdict}'
+    homework_name = homework['homework_name']
+    if 'status' in homework:
+        homework_status = homework['status']
     else:
-        raise PraktikumException("Задания не обнаружены")
+        logging.error("Статус домашней работы пуст!")
+
+    statuses = {
+        'reviewing': 'Взята в ревью.',
+        'approved': 'Ревьюеру всё понравилось, можно приступать к '
+                    'следующему уроку.',
+        'rejected': 'К сожалению в работе нашлись ошибки.',
+    }
+
+    if homework_status in statuses:
+        verdict = statuses[homework_status]
+    else:
+        verdict = statuses[homework_status]
+        logging.warning("Обнаружен новый статус, отсутствующий в списке!")
+
+    return f'У вас проверили работу "{homework_name}"!\n\n{verdict}'
 
 
 def get_homework_statuses(current_timestamp):
@@ -87,22 +86,22 @@ def get_homework_statuses(current_timestamp):
             headers={'Authorization': f'OAuth {PRAKTIKUM_TOKEN}'},
             params={'from_date': current_timestamp}
         )
-        homework_statuses_json = homework_statuses.json()
     except requests.exceptions.RequestException as e:
         raise PraktikumException(
             "При обработке вашего запроса возникла неоднозначная "
             f"исключительная ситуация: {e}"
         )
-    except json.JSONDecodeError:
-        raise PraktikumException(
-            "Ответ от сервера должен быть в формате JSON"
-        )
     except ValueError as e:
         raise PraktikumException(f"Ошибка в значении {e}")
     except TypeError as e:
         raise PraktikumException(f"Не корректный тип данных {e}")
-    except Exception as e:
-        raise PraktikumException(e)
+
+    try:
+        homework_statuses_json = homework_statuses.json()
+    except json.JSONDecodeError:
+        raise PraktikumException(
+            "Ответ от сервера должен быть в формате JSON"
+        )
 
     if 'error' in homework_statuses_json:
         if 'error' in homework_statuses_json['error']:
@@ -114,7 +113,7 @@ def get_homework_statuses(current_timestamp):
         raise PraktikumException(
             f"{homework_statuses_json['message']}"
         )
-
+    logging.debug("Список домашних работ получен")
     return homework_statuses_json
 
 
@@ -127,47 +126,53 @@ def send_message(message, bot_client):
     :return: Результат отправки сообщения
     """
     log = message.replace('\n', '')
-    logging.info(f"Отправлено сообщение: {log}")
-    return bot_client.send_message(chat_id=CHAT_ID, text=message)
+    logging.info(f"Отправка сообщения в телеграм: {log}")
+    try:
+        return bot_client.send_message(chat_id=CHAT_ID, text=message)
+    except error.Unauthorized:
+        timeout_exception(
+            'Телеграм API: Не авторизован, проверьте TOKEN и CHAT_ID'
+        )
+    except error.BadRequest as e:
+        timeout_exception(f'Ошибка работы с Телеграм: {e}')
+    except error.TelegramError as e:
+        timeout_exception(f'Ошибка работы с Телеграм: {e}')
 
 
 def main():
     logging.debug('Бот запущен! v0.2')
-    current_timestamp = int(time.time())  # начальное значение timestamp
+    current_timestamp = 0  # начальное значение timestamp
     bot = Bot(token=TELEGRAM_TOKEN)
 
     while True:
         try:
             new_homework = get_homework_statuses(current_timestamp)
             if new_homework.get('homeworks'):
-                send_message(
-                    parse_homework_status(new_homework.get('homeworks')[0]),
-                    bot,
-                )
+                if 'homework_name' in new_homework.get('homeworks')[0]:
+                    send_message(
+                        parse_homework_status(
+                            new_homework.get('homeworks')[0]),
+                        bot,
+                    )
+            else:
+                logging.info("Задания не обнаружены")
             current_timestamp = new_homework.get(
                 'current_date', current_timestamp
             )
             # опрашивать раз в пять минут
             time.sleep(300)
 
-        except error.Unauthorized:
-            logging.error(
-                'Телеграм API: Не авторизован, проверьте TOKEN и CHAT_ID'
-            )
-            timeout_exception()
-        except error.BadRequest as e:
-            logging.error(f'Ошибка работы с Телеграм: {e}')
-            timeout_exception()
-        except error.TelegramError as e:
-            logging.error(f'Ошибка работы с Телеграм: {e}')
-            timeout_exception()
         except PraktikumException as e:
-            logging.error(f'praktikum.yandex.ru: {e}')
             send_message(f'Ошибка: praktikum.yandex.ru: {e}', bot)
-            timeout_exception()
+            timeout_exception(f'praktikum.yandex.ru: {e}')
         except Exception as e:
-            logging.critical(f'Бот столкнулся с ошибкой: {e}')
-            timeout_exception()
+            timeout_exception(
+                f'Бот столкнулся с ошибкой: {e}',
+                logging.critical
+            )
+        else:
+            global time_sleep_error
+            time_sleep_error = 10
 
 
 if __name__ == '__main__':
