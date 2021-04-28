@@ -140,8 +140,8 @@ def send_message(message, bot_client):
 
 
 def main():
-    logging.debug('Бот запущен! v0.2')
-    current_timestamp = 0  # начальное значение timestamp
+    logging.debug('Бот запущен!')
+    current_timestamp = int(time.time())  # начальное значение timestamp
     bot = Bot(token=TELEGRAM_TOKEN)
 
     while True:
