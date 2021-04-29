@@ -25,7 +25,7 @@ class PraktikumException(Exception):
     pass
 
 
-def timeout_exception(message: str = None, level_error=logging.error):
+def timeout_and_logging(message: str = None, level_error=logging.error):
     """
     Таймаут между после ошибки увеличивающийся в 2 раза после каждой ошибки
     """
@@ -50,6 +50,10 @@ def parse_homework_status(homework):
     :return: Результат выполнения домашней работы
     """
     logging.debug(f"Парсим домашнее задание: {homework}")
+    if 'homework_name' not in homework:
+        raise PraktikumException(
+            "Отсутствует имя в домашнем задании!"
+        )
     homework_name = homework['homework_name']
     if 'status' in homework:
         homework_status = homework['status']
@@ -66,8 +70,9 @@ def parse_homework_status(homework):
     if homework_status in statuses:
         verdict = statuses[homework_status]
     else:
-        verdict = statuses[homework_status]
-        logging.warning("Обнаружен новый статус, отсутствующий в списке!")
+        raise PraktikumException(
+            "Обнаружен новый статус, отсутствующий в списке!"
+        )
 
     return f'У вас проверили работу "{homework_name}"!\n\n{verdict}'
 
@@ -114,6 +119,7 @@ def get_homework_statuses(current_timestamp):
             f"{homework_statuses_json['message']}"
         )
     logging.debug("Список домашних работ получен")
+
     return homework_statuses_json
 
 
@@ -130,13 +136,13 @@ def send_message(message, bot_client):
     try:
         return bot_client.send_message(chat_id=CHAT_ID, text=message)
     except error.Unauthorized:
-        timeout_exception(
+        timeout_and_logging(
             'Телеграм API: Не авторизован, проверьте TOKEN и CHAT_ID'
         )
     except error.BadRequest as e:
-        timeout_exception(f'Ошибка работы с Телеграм: {e}')
+        timeout_and_logging(f'Ошибка работы с Телеграм: {e}')
     except error.TelegramError as e:
-        timeout_exception(f'Ошибка работы с Телеграм: {e}')
+        timeout_and_logging(f'Ошибка работы с Телеграм: {e}')
 
 
 def main():
@@ -147,13 +153,11 @@ def main():
     while True:
         try:
             new_homework = get_homework_statuses(current_timestamp)
-            if new_homework.get('homeworks'):
-                if 'homework_name' in new_homework.get('homeworks')[0]:
-                    send_message(
-                        parse_homework_status(
-                            new_homework.get('homeworks')[0]),
-                        bot,
-                    )
+            homeworks = new_homework.get('homeworks')
+            if ((type(homeworks) is list)
+                    and (len(homeworks) > 0)
+                    and homeworks):
+                send_message(parse_homework_status(homeworks[0]), bot)
             else:
                 logging.info("Задания не обнаружены")
             current_timestamp = new_homework.get(
@@ -164,9 +168,9 @@ def main():
 
         except PraktikumException as e:
             send_message(f'Ошибка: praktikum.yandex.ru: {e}', bot)
-            timeout_exception(f'praktikum.yandex.ru: {e}')
+            timeout_and_logging(f'praktikum.yandex.ru: {e}')
         except Exception as e:
-            timeout_exception(
+            timeout_and_logging(
                 f'Бот столкнулся с ошибкой: {e}',
                 logging.critical
             )
