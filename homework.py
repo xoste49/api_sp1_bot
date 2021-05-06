@@ -101,6 +101,9 @@ def get_homework_statuses(current_timestamp):
     except TypeError as e:
         raise PraktikumException(f"Не корректный тип данных {e}")
 
+    if homework_statuses.status_code != 200:
+        raise PraktikumException(f"Ошибка {homework_statuses.status_code} сайт praktikum.yandex.ru недоступен")
+
     try:
         homework_statuses_json = homework_statuses.json()
     except json.JSONDecodeError:
