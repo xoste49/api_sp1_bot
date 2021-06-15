@@ -166,8 +166,8 @@ def main():
             current_timestamp = new_homework.get(
                 'current_date', current_timestamp
             )
-            # опрашивать раз в пять минут
-            time.sleep(300)
+            # опрашивать раз в десять минут
+            time.sleep(600)
 
         except PraktikumException as e:
             #send_message(f'Ошибка: praktikum.yandex.ru: {e}', bot)
@@ -179,7 +179,7 @@ def main():
             )
         else:
             global time_sleep_error
-            time_sleep_error = 10
+            time_sleep_error = 30
 
 
 if __name__ == '__main__':
