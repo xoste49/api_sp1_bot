@@ -14,7 +14,7 @@ PRAKTIKUM_TOKEN = os.getenv("PRAKTIKUM_TOKEN")
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 
-time_sleep_error = 15  # Время ожидания после ошибки
+time_sleep_error = 30  # Время ожидания после ошибки
 logging.basicConfig(
     level=logging.DEBUG,
     format='%(asctime)s, %(levelname)s, %(message)s, %(name)s'
@@ -35,8 +35,8 @@ def timeout_and_logging(message: str = None, level_error=logging.error):
     logging.debug(f'Timeout: {time_sleep_error}с')
     time.sleep(time_sleep_error)
     time_sleep_error *= 2
-    if time_sleep_error >= 5120:
-        time_sleep_error = 10
+    if time_sleep_error >= 51200:
+        time_sleep_error = 30
         logging.critical(
             'Очень много ошибок или проблемы в работе программы. '
         )
@@ -170,7 +170,7 @@ def main():
             time.sleep(300)
 
         except PraktikumException as e:
-            send_message(f'Ошибка: praktikum.yandex.ru: {e}', bot)
+            #send_message(f'Ошибка: praktikum.yandex.ru: {e}', bot)
             timeout_and_logging(f'praktikum.yandex.ru: {e}')
         except Exception as e:
             timeout_and_logging(
