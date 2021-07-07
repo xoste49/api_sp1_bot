@@ -1,6 +1,13 @@
 # api_sp1_bot
 Бот для Телеграмма работает с Домашкой Яндекс.Практикум, получает обновления проверки последней домашней работы.
 
+## .env file structure
+```bash
+PRAKTIKUM_TOKEN='qwertyqwertyqwertyqwertyqwertyqwertyqwe'
+TELEGRAM_TOKEN='1123456789:qwertyqwertyqwertyqwertyqwertyqwert'
+TELEGRAM_CHAT_ID='12345678'
+```
+
 ## Установка Debian
 ```bash
 $ cd /root/
