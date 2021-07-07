@@ -8,17 +8,21 @@ import requests
 from dotenv import load_dotenv
 from telegram import Bot, error
 
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s, %(levelname)s, %(message)s, %(name)s'
+)
+
 load_dotenv()
 
 PRAKTIKUM_TOKEN = os.getenv("PRAKTIKUM_TOKEN")
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
-
 time_sleep_error = 30  # Время ожидания после ошибки
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s, %(levelname)s, %(message)s, %(name)s'
-)
+
+
+logging.debug('Бот запущен!')
+bot = Bot(token=TELEGRAM_TOKEN)
 
 
 class PraktikumException(Exception):
@@ -62,9 +66,8 @@ def parse_homework_status(homework):
 
     statuses = {
         'reviewing': 'Взята в ревью.',
-        'approved': 'Ревьюеру всё понравилось, можно приступать к '
-                    'следующему уроку.',
-        'rejected': 'К сожалению в работе нашлись ошибки.',
+        'approved': 'Ревьюеру всё понравилось, работа зачтена!',
+        'rejected': 'К сожалению, в работе нашлись ошибки.',
     }
 
     if homework_status in statuses:
@@ -77,7 +80,7 @@ def parse_homework_status(homework):
     return f'У вас проверили работу "{homework_name}"!\n\n{verdict}'
 
 
-def get_homework_statuses(current_timestamp):
+def get_homeworks(current_timestamp):
     """
     Получение списка домашних работы от заданного времени.
 
@@ -126,7 +129,7 @@ def get_homework_statuses(current_timestamp):
     return homework_statuses_json
 
 
-def send_message(message, bot_client):
+def send_message(message):
     """
     Отправка сообщения в телеграм
 
@@ -137,7 +140,7 @@ def send_message(message, bot_client):
     log = message.replace('\n', '')
     logging.info(f"Отправка сообщения в телеграм: {log}")
     try:
-        return bot_client.send_message(chat_id=CHAT_ID, text=message)
+        return bot.send_message(chat_id=CHAT_ID, text=message)
     except error.Unauthorized:
         timeout_and_logging(
             'Телеграм API: Не авторизован, проверьте TOKEN и CHAT_ID'
@@ -149,13 +152,11 @@ def send_message(message, bot_client):
 
 
 def main():
-    logging.debug('Бот запущен!')
     current_timestamp = int(time.time())  # начальное значение timestamp
-    bot = Bot(token=TELEGRAM_TOKEN)
 
     while True:
         try:
-            new_homework = get_homework_statuses(current_timestamp)
+            new_homework = get_homeworks(current_timestamp)
             homeworks = new_homework.get('homeworks')
             if ((type(homeworks) is list)
                     and (len(homeworks) > 0)
@@ -166,15 +167,15 @@ def main():
             current_timestamp = new_homework.get(
                 'current_date', current_timestamp
             )
-            # опрашивать раз в десять минут
-            time.sleep(600)
+            # опрашивать раз в пять минут
+            time.sleep(5 * 60)
 
         except PraktikumException as e:
             #send_message(f'Ошибка: praktikum.yandex.ru: {e}', bot)
             timeout_and_logging(f'praktikum.yandex.ru: {e}')
         except Exception as e:
             timeout_and_logging(
-                f'Бот столкнулся с ошибкой: {e}',
+                f'Бот упал с ошибкой: {e}',
                 logging.critical
             )
         else:
