@@ -20,7 +20,6 @@ TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 time_sleep_error = 30  # Время ожидания после ошибки
 
-
 logging.debug('Бот запущен!')
 bot = Bot(token=TELEGRAM_TOKEN)
 
@@ -46,7 +45,7 @@ def timeout_and_logging(message: str = None, level_error=logging.error):
         )
 
 
-def parse_homework_status(homework):
+def parse_homework_status(homework: dict) -> str:
     """
     Парсим домашнее задание
 
@@ -54,15 +53,12 @@ def parse_homework_status(homework):
     :return: Результат выполнения домашней работы
     """
     logging.debug(f"Парсим домашнее задание: {homework}")
-    if 'homework_name' not in homework:
+    if 'homework_name' not in homework or 'status' not in homework:
         raise PraktikumException(
-            "Отсутствует имя в домашнем задании!"
+            "Отсутствует имя или статус в домашнем задании!"
         )
     homework_name = homework['homework_name']
-    if 'status' in homework:
-        homework_status = homework['status']
-    else:
-        logging.error("Статус домашней работы пуст!")
+    homework_status = homework['status']
 
     statuses = {
         'reviewing': 'Взята в ревью.',
@@ -70,17 +66,16 @@ def parse_homework_status(homework):
         'rejected': 'К сожалению, в работе нашлись ошибки.',
     }
 
-    if homework_status in statuses:
-        verdict = statuses[homework_status]
-    else:
+    if homework_status not in statuses:
         raise PraktikumException(
             "Обнаружен новый статус, отсутствующий в списке!"
         )
 
+    verdict = statuses[homework_status]
     return f'У вас проверили работу "{homework_name}"!\n\n{verdict}'
 
 
-def get_homeworks(current_timestamp):
+def get_homeworks(current_timestamp: int) -> dict:
     """
     Получение списка домашних работы от заданного времени.
 
@@ -105,7 +100,8 @@ def get_homeworks(current_timestamp):
         raise PraktikumException(f"Не корректный тип данных {e}")
 
     if homework_statuses.status_code != 200:
-        raise PraktikumException(f"Ошибка {homework_statuses.status_code} сайт praktikum.yandex.ru недоступен")
+        raise PraktikumException(
+            f"Ошибка {homework_statuses.status_code} сайт praktikum.yandex.ru недоступен")
 
     try:
         homework_statuses_json = homework_statuses.json()
@@ -124,12 +120,12 @@ def get_homeworks(current_timestamp):
         raise PraktikumException(
             f"{homework_statuses_json['message']}"
         )
-    logging.debug("Список домашних работ получен")
+    logging.info("Список домашних работ получен")
 
     return homework_statuses_json
 
 
-def send_message(message):
+def send_message(message: str):
     """
     Отправка сообщения в телеграм
 
@@ -161,7 +157,7 @@ def main():
             if ((type(homeworks) is list)
                     and (len(homeworks) > 0)
                     and homeworks):
-                send_message(parse_homework_status(homeworks[0]), bot)
+                send_message(parse_homework_status(homeworks[0]))
             else:
                 logging.info("Задания не обнаружены")
             current_timestamp = new_homework.get(
@@ -171,7 +167,7 @@ def main():
             time.sleep(5 * 60)
 
         except PraktikumException as e:
-            #send_message(f'Ошибка: praktikum.yandex.ru: {e}', bot)
+            # send_message(f'Ошибка: praktikum.yandex.ru: {e}')
             timeout_and_logging(f'praktikum.yandex.ru: {e}')
         except Exception as e:
             timeout_and_logging(
