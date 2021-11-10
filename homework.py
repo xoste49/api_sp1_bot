@@ -43,7 +43,9 @@ def check_tokens():
     функция должна вернуть False, иначе — True.
     :return:
     """
-    if PRACTICUM_TOKEN is None or TELEGRAM_TOKEN is None or TELEGRAM_CHAT_ID is None:
+    if PRACTICUM_TOKEN is None or \
+            TELEGRAM_TOKEN is None or \
+            TELEGRAM_CHAT_ID is None:
         return False
     return True
 
@@ -77,10 +79,6 @@ def parse_status(homework: dict) -> str:
     :return: Результат выполнения домашней работы
     """
     logging.debug(f"Парсим домашнее задание: {homework}")
-    """if 'homework_name' not in homework or 'status' not in homework:
-        raise PracticumException(
-            "Отсутствует имя или статус в домашнем задании!"
-        )"""
     homework_name = homework['homework_name']
     homework_status = homework['status']
 
@@ -104,7 +102,7 @@ def get_api_answer(current_timestamp: int) -> list:
     :param current_timestamp: Время в формате timestamp
     :return: ответ API
     """
-    logging.debug("Получение списка домашних работы")
+    logging.info("Получение ответа от сервера")
     try:
         homework_statuses = requests.get(
             ENDPOINT,
@@ -142,9 +140,10 @@ def check_response(response: list) -> list:
     ответ API, приведенный к типам данных Python. Если ответ API соответствует
     ожиданиям, то функция должна вернуть список домашних работ
     (он может быть и пустым), доступный в ответе API по ключу 'homeworks'
-    :param response:
-    :return: Список домашних работ
+    :param response: ответ API
+    :return: Список домашних работ JSON
     """
+    logging.debug("Проверка ответа API на корректность")
     if 'error' in response:
         if 'error' in response['error']:
             raise PracticumException(
@@ -161,7 +160,7 @@ def check_response(response: list) -> list:
 
     if not isinstance(response['homeworks'], list):
         raise PracticumException("response['homeworks'] не является списком")
-
+    logging.debug("API проверен на корректность")
     return response['homeworks']
 
 
@@ -179,7 +178,8 @@ def send_message(bot, message: str):
         return bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
     except error.Unauthorized:
         timeout_and_logging(
-            'Телеграм API: Не авторизован, проверьте TOKEN и CHAT_ID'
+            'Телеграм API: Не авторизован, проверьте TELEGRAM_TOKEN и '
+            'TELEGRAM_CHAT_ID '
         )
     except error.BadRequest as e:
         timeout_and_logging(f'Ошибка работы с Телеграм: {e}')
@@ -200,11 +200,10 @@ def main():
     :return:
     """
     if not check_tokens():
-        logging.error("Отсутствует переменная(-ные) окружения")
+        logging.critical("Отсутствует переменная(-ные) окружения")
         return 0
     bot = Bot(token=TELEGRAM_TOKEN)
-    current_timestamp = 0  # начальное значение timestamp
-    # current_timestamp = int(time.time())
+    current_timestamp = int(time.time())  # начальное значение timestamp или 0
 
     while True:
         try:
@@ -217,7 +216,7 @@ def main():
                 send_message(bot, parse_status(homeworks[0]))
             else:
                 logging.info("Задания не обнаружены")
-            current_timestamp = int(time.time())
+            current_timestamp = response_api['current_date']
             time.sleep(RETRY_TIME)
 
         except PracticumException as e:
