@@ -3,7 +3,7 @@
 
 ## .env file structure
 ```bash
-PRAKTIKUM_TOKEN='qwertyqwertyqwertyqwertyqwertyqwertyqwe'
+PRACTICUM_TOKEN='qwertyqwertyqwertyqwertyqwertyqwertyqwe'
 TELEGRAM_TOKEN='1123456789:qwertyqwertyqwertyqwertyqwertyqwert'
 TELEGRAM_CHAT_ID='12345678'
 ```
