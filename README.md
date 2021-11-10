@@ -13,8 +13,8 @@ TELEGRAM_CHAT_ID='12345678'
 $ cd /root/
 $ mkdir python_projects
 $ cd python_projects
-$ git clone https://github.com/xoste49/api_sp1_bot.git
-$ cd api_sp1_bot
+$ git clone https://github.com/xoste49/homework_bot.git
+$ cd homework_bot
 $ python3 -m venv venv
 $ source venv/bin/activate
 (venv)$ pip install -r requirements.txt
@@ -29,9 +29,9 @@ After=network.target
 
 [Service]
 EnvironmentFile=/etc/environment
-ExecStart=/root/python_projects/api_sp1_bot/venv/bin/python homework.py
-ExecReload=/root/python_projects/api_sp1_bot/venv/bin/python homework.py
-WorkingDirectory=/root/python_projects/api_sp1_bot/
+ExecStart=/root/python_projects/homework_bot/venv/bin/python homework.py
+ExecReload=/root/python_projects/homework_bot/venv/bin/python homework.py
+WorkingDirectory=/root/python_projects/homework_bot/
 KillMode=process
 Restart=always
 RestartSec=5
