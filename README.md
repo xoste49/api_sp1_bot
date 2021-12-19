@@ -2,7 +2,7 @@
 Бот для Телеграмма работает с Домашкой Яндекс.Практикум, получает обновления проверки последней домашней работы.<br>
 Получить PRACTICUM_TOKEN: https://oauth.yandex.ru/authorize?response_type=token&client_id=1d0b9dd4d652455a9eb710d450ff456a
 
-## .env file structure
+## Environment
 ```bash
 PRACTICUM_TOKEN='qwertyqwertyqwertyqwertyqwertyqwertyqwe'
 TELEGRAM_TOKEN='1123456789:qwertyqwertyqwertyqwertyqwertyqwert'
